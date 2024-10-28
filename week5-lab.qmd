@@ -1,0 +1,18 @@
+---
+title: "EDS 223: Week 5"
+format: html
+---
+
+```{r}
+library(sf)
+library(terra)
+library(tidyverse)
+library(tmap)
+library(spData)
+library(spDataLarge)
+```
+
+```{r}
+
+```
+
