@@ -1,6 +1,8 @@
 ---
 title: "EDS 223: Week 5"
 format: html
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r}
@@ -13,6 +15,97 @@ library(spDataLarge)
 ```
 
 ```{r}
+# Load raster dataset
+elevation <- rast(system.file("raster/srtm.tif", package = "spDataLarge"))
 
+# Load vector dataset
+boundary <- read_sf(system.file("vector/zion.gpkg", package = "spDataLarge"))
 ```
+
+```{r}
+# First thing we should always do --> check if CRS match 
+
+# check if coordinate reference systems match
+if(crs(elevation) == crs(boundary)) {
+  print("Coordinate reference systems match")
+} else{
+  warning("Updating coordinate reference systems to match")
+  # transform data to match
+  boundary <- st_transform(boundary, st_crs(elevation))
+}
+```
+
+```{r}
+# OG MAP
+# Now our CRS match - let's make a map!
+tm_shape(elevation) +
+  tm_raster(title = 'Elevation (meters)') +
+  tm_shape(boundary) +
+  tm_borders(lwd=1) +
+  tm_layout(legend.outside = TRUE)
+```
+
+```{r}
+# CROPPED MAP
+# Scale down the data to what's useful for us
+# Crop raster to the extent of the vector object
+
+elevation_cropped <- terra::crop(elevation, boundary)
+
+tm_shape(elevation_cropped) +
+  tm_raster(title = 'Elevation (meters)') +
+  tm_shape(boundary) +
+  tm_borders(lwd=1) +
+  tm_layout(legend.outside = TRUE)
+```
+
+```{r}
+# MASKED MAP
+# Mask our raster based on the vector object
+# convert the cells outside of the park to NA
+
+elevation_masked <- terra::mask(elevation_cropped, boundary)
+
+tm_shape(elevation_masked) +
+  tm_raster(title = 'Elevation (meters)') +
+  tm_shape(boundary) +
+  tm_borders(lwd=1) +
+  tm_layout(legend.outside = TRUE)
+```
+
+```{r}
+# INVERSE MASK MAP
+# Mask raster based on vector object
+# convert cells outside of the park to NA
+
+elevation_inverse_mask <- terra::mask(elevation_cropped, boundary, inverse = TRUE)
+
+tm_shape(elevation_inverse_mask) +
+  tm_raster(title = 'Elevation (meters)') +
+  tm_shape(boundary) +
+  tm_borders(lwd=1) +
+  tm_layout(legend.outside = TRUE)
+```
+
+```{r}
+# First create a mask to select locations within the park of a certain elevation, then convert those to vector data
+
+# Masking to cells inside park
+elevation_inside <- mask(elevation_cropped, boundary)
+
+# Create a mask based on the value of the cells 
+elevation_mask <- elevation_inside
+elevation_mask[elevation_mask < 2000] <- NA
+
+# convert grid cells into polygons and turn this into an sf object
+elevation_mask_poly <- terra::as.polygons(elevation_mask) %>%
+  st_as_sf()
+
+tm_shape(elevation_mask_poly) +
+  tm_polygons() +
+  tm_layout(legend.outside = TRUE)
+```
+
+
+
 
